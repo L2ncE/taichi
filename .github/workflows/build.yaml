@@ -86,15 +86,20 @@ jobs:
       - self-hosted
       - macos-10.15
     env:
+      # 折叠块标记
       TAICHI_CMAKE_ARGS: >-
         -DTI_WITH_OPENGL:BOOL=OFF
         -DTI_WITH_VULKAN:BOOL=ON
         -DTI_WITH_C_API:BOOL=ON
         -DTI_BUILD_TESTS:BOOL=ON
     steps:
+      # git rev-parse HEAD > /dev/null 2>&1：获取当前子模块的 HEAD 引用并将其输出到 /dev/null，从而检查子模块是否正常。
+      # 如果上述命令返回错误，则执行 rm -rf $PWD 命令，删除当前子模块的目录。
+      # 最后，使用 || true 语法表示即使某个子模块存在问题也不会造成工作流失败。
       - name: Workaround checkout Needed single revision issue
         run: git submodule foreach 'git rev-parse HEAD > /dev/null 2>&1 || rm -rf $PWD' || true
 
+      # 以便拉取完整的代码仓库和所有子模块
       - uses: actions/checkout@v3
         with:
           fetch-depth: "0"
@@ -103,6 +108,7 @@ jobs:
       - name: Build
         run: ./build.py ${NIGHTLY:+--nightly} --python=${{ matrix.python }} ${SHOULD_TAG_CONFIG:+--tag-config}
 
+      # 将构建好的wheel上传到一个S3存储桶中
       - name: Upload Built Wheel
         uses: shallwefootball/s3-upload-action@v1.3.3
         with:
