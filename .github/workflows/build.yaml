@@ -1,6 +1,7 @@
 name: Build Taichi
 on:
   workflow_call:
+    # 定义了三个输入参数
     inputs:
       build_id:
         required: true
@@ -17,13 +18,14 @@ on:
       BOT_MINIO_SECRET_KEY:
         required: true
   workflow_dispatch:
+    # 定义了三个输入参数
     inputs:
       build_id:
-        description: 'The build id. e.g.: 20230427-102544-abcdefab'
+        description: "The build id. e.g.: 20230427-102544-abcdefab"
         required: true
         type: string
       nightly:
-        description: 'Are we building nightly wheels?'
+        description: "Are we building nightly wheels?"
         required: true
         default: false
         type: boolean
@@ -32,46 +34,57 @@ on:
         required: true
         type: string
 
+# 控制并发运行的 job 数量
 concurrency:
+  # 这个名称包含了一个变量，它的值是当前的Github事件号（如果有的话），
+  # 否则是当前的工作流运行ID。这个变量确保了每次运行的concurrency group都是独一无二的。
   group: build-${{ github.event.number || github.run_id }}
+  # 如果一个job正在运行，而另一个job需要运行在相同的concurrency group中，
+  # 那么正在运行的job将被自动取消，以便让新的job运行
   cancel-in-progress: true
 
+# 定义了一些环境变量
 env:
   TI_CI: "1"
-  TI_SKIP_VERSION_CHECK: 'ON'
-  CI_IMAGE_VERSION: '202304251731'
+  TI_SKIP_VERSION_CHECK: "ON"
+  CI_IMAGE_VERSION: "202304251731"
   TI_USE_GIT_CACHE: ${{ vars.TI_USE_GIT_CACHE }}
+  # NIGHTLY变量的值是根据inputs.nightly的值（如果为true，则为"nightly"，否则为空字符串）动态设置的。
   NIGHTLY: ${{ inputs.nightly && 'nightly' || '' }}
 
 jobs:
   show_environ:
     name: Show Environment Variables
     # Disable this workflow on forks
+    # 这个job只会在taichi-dev的仓库中运行。
     if: github.repository_owner == 'taichi-dev'
     runs-on: [self-hosted, Linux]
     steps:
-    - name: Environment Variables
-      run: env
-    - name: Github Object
-      run: |
-        cat <<'EOF'
-        ${{ toJson(github) }}
-        EOF
+      - name: Environment Variables
+        run: env
+      - name: Github Object
+        # 展示Github对象的信息，以便在调试和排查问题时使用。
+        run: |
+          cat <<'EOF'
+          ${{ toJson(github) }}
+          EOF
 
   build_cpu_mac:
     name: Build macOS-x86
     timeout-minutes: 30
     strategy:
+      # "fail-fast"指示当一个job失败时，是否停止运行其他job
       fail-fast: false
+      # 通过传入的矩阵允许在不同的环境中运行相同的job，以便测试不同的配置和参数
       matrix:
         python: ${{ fromJSON(inputs.python) }}
-        _designated: ['']
+        _designated: [""]
         include:
-        - _designated: ''
-          designated: designated
+          - _designated: ""
+            designated: designated
     runs-on:
-    - self-hosted
-    - macos-10.15
+      - self-hosted
+      - macos-10.15
     env:
       TAICHI_CMAKE_ARGS: >-
         -DTI_WITH_OPENGL:BOOL=OFF
@@ -84,8 +97,8 @@ jobs:
 
       - uses: actions/checkout@v3
         with:
-          fetch-depth: '0'
-          submodules: 'recursive'
+          fetch-depth: "0"
+          submodules: "recursive"
 
       - name: Build
         run: ./build.py ${NIGHTLY:+--nightly} --python=${{ matrix.python }} ${SHOULD_TAG_CONFIG:+--tag-config}
@@ -106,15 +119,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cuda: ['', cuda]
-        llvm: ['', llvm]
-        gl: ['', gl]
-        vk: ['', vk]
+        cuda: ["", cuda]
+        llvm: ["", llvm]
+        gl: ["", gl]
+        vk: ["", vk]
         python: ${{ fromJSON(inputs.python) }}
         include:
-        - {cuda: cuda, llvm: llvm, gl: gl, vk: vk, designated: designated}
+          - { cuda: cuda, llvm: llvm, gl: gl, vk: vk, designated: designated }
         exclude:
-        - {llvm: '', cuda: cuda}
+          - { llvm: "", cuda: cuda }
     runs-on: [self-hosted, online, Linux, build]
     env:
       TAICHI_CMAKE_ARGS: >-
@@ -132,8 +145,8 @@ jobs:
 
       - uses: actions/checkout@v3
         with:
-          submodules: 'recursive'
-          fetch-depth: '0'
+          submodules: "recursive"
+          fetch-depth: "0"
 
       - name: Build
         run: |
@@ -163,10 +176,10 @@ jobs:
       fail-fast: false
       matrix:
         python: ${{ fromJSON(inputs.python) }}
-        _designated: ['']
+        _designated: [""]
         include:
-        - _designated: ''
-          designated: designated
+          - _designated: ""
+            designated: designated
     env:
       TAICHI_CMAKE_ARGS: >-
         -DTI_WITH_OPENGL:BOOL=OFF
@@ -176,8 +189,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          submodules: 'recursive'
-          fetch-depth: '0'
+          submodules: "recursive"
+          fetch-depth: "0"
 
       - name: Build
         run: |
@@ -205,7 +218,7 @@ jobs:
       fail-fast: false
       matrix:
         python: ${{ fromJSON(inputs.python) }}
-        designated: ['']
+        designated: [""]
     runs-on: [self-hosted, online, Linux, build]
     env:
       TAICHI_CMAKE_ARGS: >-
@@ -221,8 +234,8 @@ jobs:
 
       - uses: actions/checkout@v3
         with:
-          submodules: 'recursive'
-          fetch-depth: '0'
+          submodules: "recursive"
+          fetch-depth: "0"
 
       - name: Build & Install
         run: |
@@ -248,15 +261,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cuda: ['', cuda]
-        llvm: ['', llvm]
-        gl: ['', gl]
-        vk: ['', vk]
+        cuda: ["", cuda]
+        llvm: ["", llvm]
+        gl: ["", gl]
+        vk: ["", vk]
         python: ${{ fromJSON(inputs.python) }}
         include:
-        - {cuda: cuda, llvm: llvm, gl: gl, vk: vk, lto: lto, pdb: pdb, designated: designated}
+          - {
+              cuda: cuda,
+              llvm: llvm,
+              gl: gl,
+              vk: vk,
+              lto: lto,
+              pdb: pdb,
+              designated: designated,
+            }
         exclude:
-        - {llvm: '', cuda: cuda}
+          - { llvm: "", cuda: cuda }
     runs-on: [self-hosted, online, Windows, build]
     timeout-minutes: 30
     env:
@@ -284,8 +305,8 @@ jobs:
 
       - uses: actions/checkout@v3
         with:
-          fetch-depth: '0'
-          submodules: 'recursive'
+          fetch-depth: "0"
+          submodules: "recursive"
 
       - uses: actions/setup-python@v4
         with:
@@ -328,15 +349,15 @@ jobs:
       fail-fast: false
       matrix:
         python: ${{ fromJSON(inputs.python) }}
-        _designated: ['']
+        _designated: [""]
         exclude:
-        - python: "3.7"
+          - python: "3.7"
         include:
-        - _designated: ''
-          designated: designated
+          - _designated: ""
+            designated: designated
     defaults:
       run:
-        shell: '/usr/bin/arch -arch arm64e /bin/bash --noprofile --norc -eo pipefail {0}'
+        shell: "/usr/bin/arch -arch arm64e /bin/bash --noprofile --norc -eo pipefail {0}"
     runs-on: [self-hosted, online, m1]
     env:
       TAICHI_CMAKE_ARGS: >-
@@ -346,15 +367,15 @@ jobs:
         -DTI_BUILD_TESTS:BOOL=ON
         -DTI_WITH_C_API=ON
         -DTI_WITH_STATIC_C_API=ON
-      PLATFORM: 'm1'
+      PLATFORM: "m1"
     steps:
       - name: Workaround checkout Needed single revision issue
         run: git submodule foreach 'git rev-parse HEAD > /dev/null 2>&1 || rm -rf $PWD' || true
 
       - uses: actions/checkout@v3
         with:
-          fetch-depth: '0'
-          submodules: 'recursive'
+          fetch-depth: "0"
+          submodules: "recursive"
 
       - name: Build
         run: |
@@ -381,8 +402,8 @@ jobs:
 
       - uses: actions/checkout@v3
         with:
-          fetch-depth: '0'
-          submodules: 'recursive'
+          fetch-depth: "0"
+          submodules: "recursive"
 
       - name: Build
         run: .github/workflows/scripts/build.py ios
@@ -391,5 +412,5 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: libtaichi_c_api.iOS.a
-          path: 'dist/C-API-iOS/*.a'
+          path: "dist/C-API-iOS/*.a"
           retention-days: 7
