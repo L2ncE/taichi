@@ -1,4 +1,6 @@
 #!/bin/bash
+
+# 用于开启 Bash 的调试模式，-e 表示遇到错误就停止脚本，-x 表示打印执行的每个命令。
 set -ex
 
 export TI_SKIP_VERSION_CHECK=ON
@@ -14,6 +16,7 @@ export TAICHI_UNITY2_BRANCH=main
 export TAICHI_UNITY_EXAMPLE_URL=https://github.com/taichi-dev/Taichi-UnityExample
 export TAICHI_UNITY_EXAMPLE_BRANCH=main
 
+# 执行当前目录下的 common-utils.sh 脚本
 . $(dirname $0)/common-utils.sh
 
 
